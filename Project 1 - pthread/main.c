@@ -1,7 +1,7 @@
 /* Integrantes:
  * Guilherme Lorete Schmidt - 13676857
  * Luanaaaaaaa
- * Joaoaoaoaoaoaoaoaooaoaoaoaoaoaooa
+ * João Pedro Gomes - 13839069
  * lqlqlqll
  * popopoopopopopopopoopopoooopopopopopo
  */
@@ -48,9 +48,9 @@ int canetas_transferidas_comprador = 0;
 int canetas_compradas = 0;
 
 // Variaveis condicionais e semaforos necessarios
-pthread_cond_t cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas;
+pthread_cond_t cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas, cond_informacao_canetas_transferidas;
 pthread_mutex_t mutex_materia_enviada, mutex_caneta_fabricar, mutex_espaco_deposito, mutex_caneta_transferida_deposito, 
-mutex_canetas_transferidas_comprador, mutex_canetas_solicitadas;
+mutex_canetas_transferidas_comprador, mutex_canetas_solicitadas, mutex_informacao_canetas_transferidas;
 
 // Thread criador (rank 0)
 int main() {
@@ -68,6 +68,7 @@ int main() {
  * @return 0 caso conclua com sucesso, 1 caso fracasse
  */
 int criador() {
+    int canetas_compradas_local = 0;
     // inicializa mutexes
     pthread_mutex_init(&mutex_materia_enviada, NULL);
     pthread_mutex_init(&mutex_caneta_fabricar, NULL);
@@ -75,6 +76,7 @@ int criador() {
     pthread_mutex_init(&mutex_caneta_transferida_deposito, NULL);
     pthread_mutex_init(&mutex_canetas_solicitadas, NULL);
     pthread_mutex_init(&mutex_canetas_transferidas_comprador, NULL);
+    pthread_mutex_init(&mutex_informacao_canetas_transferidas, NULL);
     
     // inicializa variaveis condicionais
     pthread_cond_init(&cond_caneta_transferida_deposito, NULL);
@@ -112,11 +114,28 @@ int criador() {
         return 1;
     }
 
+    while(canetas_compradas_local >= 0){
+        // receber informacao sobre canetas compradas
+        pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
+        while(canetas_compradas == 0)
+            pthread_cond_wait(&cond_informacao_canetas_transferidas, &mutex_informacao_canetas_transferidas);
+        canetas_compradas_local = canetas_compradas;
+        canetas_compradas = 0;
+        pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
+
+        printf("Comprou %d canetas !!!!!!!!!", &canetas_compradas_local);
+    }
+    
     pthread_join(thread_deposito_materia, 0);
+    printf("Thread deposito materia finalizada");
     pthread_join(thread_fabrica, 0);
+    printf("Thread fabrica finalizada");
     pthread_join(thread_controle, 0);
+    printf("Thread controle finalizada");
     pthread_join(thread_deposito_caneta, 0);
+    printf("Thread deposito caneta finalizada");
     pthread_join(thread_comprador, 0);
+    printf("Thread comprador finalizada");
 
     return 0;
 }
@@ -278,8 +297,12 @@ void *comprador() {
         canetas_compradas_local = canetas_transferidas_comprador;
         canetas_transferidas_comprador = 0;
         pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
-
-        printf("Comprou %d canetas !!!!!!!\n", canetas_compradas_local);
+        
+        // 'envia' informação de compra para o criador
+        pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
+        canetas_compradas = canetas_compradas_local;
+        pthread_cond_signal(&cond_informacao_canetas_transferidas);
+        pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
 
         // aguarda o entre compras
         time_t referencia = time(NULL);
