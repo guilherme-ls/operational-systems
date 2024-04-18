@@ -18,7 +18,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
-#include<semaphore.h>
 
 // Funcoes de cada thread, ranks 0 a 5
 int criador();
@@ -41,7 +40,6 @@ int intervalo_compra_caneta;
 // Variaveis pra comunicacao entre threads
 
 int espaco_deposito = 0;
-int materia_requisitada = 0;
 int materia_enviada = 0;
 int demanda_caneta = 0;
 int caneta_transferida_deposito = 0;
@@ -50,10 +48,9 @@ int canetas_transferidas_comprador = 0;
 int canetas_compradas = 0;
 
 // Variaveis condicionais e semaforos necessarios
-pthread_cond_t cond_materia_fabrica, cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas;
+pthread_cond_t cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas;
 pthread_mutex_t mutex_materia_enviada, mutex_caneta_fabricar, mutex_espaco_deposito, mutex_caneta_transferida_deposito, 
 mutex_canetas_transferidas_comprador, mutex_canetas_solicitadas;
-sem_t semaf_materia_fabrica;
 
 // Thread criador (rank 0)
 int main() {
@@ -71,9 +68,6 @@ int main() {
  * @return 0 caso conclua com sucesso, 1 caso fracasse
  */
 int criador() {
-    // inicializa semaforos
-    sem_init(&semaf_materia_fabrica, 0, 0);
-
     // inicializa mutexes
     pthread_mutex_init(&mutex_materia_enviada, NULL);
     pthread_mutex_init(&mutex_caneta_fabricar, NULL);
