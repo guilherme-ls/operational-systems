@@ -68,7 +68,6 @@ int main() {
  * @return 0 caso conclua com sucesso, 1 caso fracasse
  */
 int criador() {
-    int canetas_compradas_local = 0;
     // inicializa mutexes
     pthread_mutex_init(&mutex_materia_enviada, NULL);
     pthread_mutex_init(&mutex_caneta_fabricar, NULL);
@@ -82,6 +81,7 @@ int criador() {
     pthread_cond_init(&cond_caneta_transferida_deposito, NULL);
     pthread_cond_init(&cond_canetas_solicitadas, NULL);
     pthread_cond_init(&cond_canetas_transferidas_comprador, NULL);
+    pthread_cond_init(&cond_informacao_canetas_transferidas, NULL);
 
     // Thread para o deposito de materia prima, rank 1
     pthread_t thread_deposito_materia;
@@ -114,6 +114,8 @@ int criador() {
         return 1;
     }
 
+    // Loop para output da canetas compradas
+    int canetas_compradas_local = 0;
     while(canetas_compradas_local >= 0){
         // receber informacao sobre canetas compradas
         pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
@@ -123,7 +125,7 @@ int criador() {
         canetas_compradas = 0;
         pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
 
-        printf("Comprou %d canetas !!!!!!!!!", &canetas_compradas_local);
+        printf("Comprou %d canetas !!!!!!!!!\n", canetas_compradas_local);
     }
     
     pthread_join(thread_deposito_materia, 0);
@@ -304,7 +306,7 @@ void *comprador() {
         pthread_cond_signal(&cond_informacao_canetas_transferidas);
         pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
 
-        // aguarda o entre compras
+        // aguarda o tempo entre compras
         time_t referencia = time(NULL);
         while(time(NULL) - referencia < tempo_fabricacao);
     }
