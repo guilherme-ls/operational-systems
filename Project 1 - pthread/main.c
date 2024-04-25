@@ -1,9 +1,9 @@
 /* Integrantes:
  * Guilherme Lorete Schmidt - 13676857
- * Luanaaaaaaa
+ * Luana Hartmann Franco da Cruz - 13676350
  * João Pedro Gomes - 13839069
- * lqlqlqll
- * popopoopopopopopopoopopoooopopopopopo
+ * Lucas Corlete Alves de Melo - 13676461
+ * João Victor Breches Alves - 13677142
  */
 
 /* Compilacao:
