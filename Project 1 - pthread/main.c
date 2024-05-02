@@ -175,8 +175,7 @@ void *deposito_materia() {
         pthread_mutex_unlock(&mutex_materia_enviada);
 
         // aguarda o intervalo entre envios
-        time_t referencia = time(NULL);
-        while(time(NULL) - referencia < intervalo_envio_materia);
+        sleep(intervalo_envio_materia);
     }
 }
 
@@ -204,8 +203,7 @@ void *fabrica() {
             materia_prima_local--;
 
             // aguarda o tempo de fabricacao
-            time_t referencia = time(NULL);
-            while(time(NULL) - referencia < tempo_fabricacao);
+            sleep(tempo_fabricacao);
 
             // transfere uma caneta ao deposito
             pthread_mutex_lock(&mutex_caneta_transferida_deposito);
@@ -299,8 +297,7 @@ void *comprador() {
 
     while(1) {
         // aguarda o tempo entre compras
-        time_t referencia = time(NULL);
-        while(time(NULL) - referencia < tempo_compra);
+        sleep(tempo_compra);
         
         // solicita canetas
         pthread_mutex_lock(&mutex_canetas_solicitadas);
