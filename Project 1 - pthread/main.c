@@ -48,11 +48,12 @@ int canetas_transferidas_comprador = 0;
 int canetas_compradas = -1;
 
 // Variaveis condicionais necessarias
+pthread_cond_t cond_materia_recebida;
 pthread_cond_t cond_caneta_transferida_deposito;
 pthread_cond_t cond_canetas_transferidas_comprador;
 pthread_cond_t cond_canetas_solicitadas;
 pthread_cond_t cond_informacao_canetas_transferidas;
-pthread_cond_t cond_materia_recebida;
+pthread_cond_t cond_recebimento_informacao_canetas_transferidas;
 
 // Mutexes necessarios
 pthread_mutex_t mutex_materia_enviada;
@@ -93,6 +94,7 @@ int criador() {
     pthread_cond_init(&cond_canetas_solicitadas, NULL);
     pthread_cond_init(&cond_canetas_transferidas_comprador, NULL);
     pthread_cond_init(&cond_informacao_canetas_transferidas, NULL);
+    pthread_cond_init(&cond_recebimento_informacao_canetas_transferidas, NULL);
 
     // Thread para o deposito de materia prima, rank 1
     pthread_t thread_deposito_materia;
@@ -139,6 +141,7 @@ int criador() {
             pthread_cond_wait(&cond_informacao_canetas_transferidas, &mutex_informacao_canetas_transferidas);
         canetas_compradas_local = canetas_compradas;
         canetas_compradas = -1;
+        pthread_cond_signal(&cond_recebimento_informacao_canetas_transferidas);
         pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
         
         total += canetas_compradas_local;
@@ -173,6 +176,7 @@ int criador() {
     pthread_cond_destroy(&cond_canetas_solicitadas);
     pthread_cond_destroy(&cond_canetas_transferidas_comprador);
     pthread_cond_destroy(&cond_informacao_canetas_transferidas);
+    pthread_cond_destroy(&cond_recebimento_informacao_canetas_transferidas);
 
     return 0;
 }
@@ -345,6 +349,8 @@ void *comprador() {
         
         //'envia' informação de compra para o criador
         pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
+        while(canetas_compradas > -1)
+            pthread_cond_wait(&cond_recebimento_informacao_canetas_transferidas, &mutex_informacao_canetas_transferidas);
         canetas_compradas = canetas_compradas_local;
         pthread_cond_signal(&cond_informacao_canetas_transferidas);
         pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
