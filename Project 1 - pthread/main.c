@@ -44,7 +44,7 @@ int materia_enviada = 0;
 int demanda_caneta = 0;
 int caneta_transferida_deposito = 0;
 int canetas_solicitadas = 0;
-int canetas_transferidas_comprador = 0;
+int canetas_transferidas_comprador = -1;
 int canetas_compradas = -1;
 
 // Variaveis condicionais necessarias
@@ -303,15 +303,13 @@ void *deposito_caneta() {
 
         // envia canetas ao comprador
         if(canetas_solicitadas_local != 0) {
+            // determina quantidade que pode ser enviada
+            if(canetas_solicitadas_local > canetas_armazenadas)
+                canetas_solicitadas_local = canetas_armazenadas;
+
             // envia quantidade solicitada de canetas
             pthread_mutex_lock(&mutex_canetas_transferidas_comprador);
-            if(canetas_solicitadas_local <= canetas_armazenadas){
-                canetas_transferidas_comprador = canetas_solicitadas_local;
-            }
-            else{
-                canetas_transferidas_comprador = canetas_armazenadas;
-            }
-
+            canetas_transferidas_comprador = canetas_solicitadas_local;
             canetas_transferidas_local = canetas_transferidas_comprador;
             pthread_cond_signal(&cond_canetas_transferidas_comprador);
             pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
@@ -342,9 +340,10 @@ void *comprador() {
 
         // as recebe
         pthread_mutex_lock(&mutex_canetas_transferidas_comprador);
-        pthread_cond_wait(&cond_canetas_transferidas_comprador, &mutex_canetas_transferidas_comprador);
+        while(canetas_transferidas_comprador < 0)
+            pthread_cond_wait(&cond_canetas_transferidas_comprador, &mutex_canetas_transferidas_comprador);
         canetas_compradas_local = canetas_transferidas_comprador;
-        canetas_transferidas_comprador = 0;
+        canetas_transferidas_comprador = -1;
         pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
         
         //'envia' informação de compra para o criador
