@@ -48,7 +48,7 @@ int canetas_transferidas_comprador = 0;
 int canetas_compradas = 0;
 
 // Variaveis condicionais e semaforos necessarios
-pthread_cond_t cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas, cond_informacao_canetas_transferidas;
+pthread_cond_t cond_caneta_transferida_deposito, cond_canetas_transferidas_comprador, cond_canetas_solicitadas, cond_informacao_canetas_transferidas, cond_materia_recebida;
 pthread_mutex_t mutex_materia_enviada, mutex_caneta_fabricar, mutex_espaco_deposito, mutex_caneta_transferida_deposito, 
 mutex_canetas_transferidas_comprador, mutex_canetas_solicitadas, mutex_informacao_canetas_transferidas;
 
@@ -169,6 +169,8 @@ void *deposito_materia() {
 
         // envia materia prima para a fabrica
         pthread_mutex_lock(&mutex_materia_enviada);
+        while(materia_enviada > 0)
+            pthread_cond_wait(&cond_materia_recebida, &mutex_materia_enviada);
         materia_enviada = materia_enviada_local;
         pthread_mutex_unlock(&mutex_materia_enviada);
 
@@ -194,6 +196,7 @@ void *fabrica() {
         pthread_mutex_lock(&mutex_materia_enviada);
         materia_prima_local += materia_enviada;
         materia_enviada = 0;
+        pthread_cond_signal(&cond_materia_recebida);
         pthread_mutex_unlock(&mutex_materia_enviada);
 
         // fabrica caneta
