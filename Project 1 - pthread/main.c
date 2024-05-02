@@ -18,6 +18,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
+#include<unistd.h>
 
 // Funcoes de cada thread, ranks 0 a 5
 int criador();
