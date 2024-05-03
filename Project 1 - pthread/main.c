@@ -44,8 +44,8 @@ int materia_enviada = 0;
 int demanda_caneta = 0;
 int caneta_transferida_deposito = 0;
 int canetas_solicitadas = 0;
-int canetas_transferidas_comprador = -2;
-int canetas_compradas = -2;
+int canetas_transferidas_comprador = -1;
+int canetas_compradas = -1;
 
 // Variaveis condicionais necessarias
 pthread_cond_t cond_materia_recebida;
@@ -54,7 +54,6 @@ pthread_cond_t cond_canetas_transferidas_comprador;
 pthread_cond_t cond_canetas_solicitadas;
 pthread_cond_t cond_informacao_canetas_transferidas;
 pthread_cond_t cond_recebimento_informacao_canetas_transferidas;
-pthread_cond_t cond_recebimento_canetas_comprador;
 
 // Mutexes necessarios
 pthread_mutex_t mutex_materia_enviada;
@@ -138,34 +137,30 @@ int criador() {
     while(canetas_compradas_local >= 0){
         // receber informacao sobre canetas compradas
         pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
-        while(canetas_compradas == -2)
+        while(canetas_compradas == -1)
             pthread_cond_wait(&cond_informacao_canetas_transferidas, &mutex_informacao_canetas_transferidas);
         canetas_compradas_local = canetas_compradas;
-        canetas_compradas = -2;
+        canetas_compradas = -1;
         pthread_cond_signal(&cond_recebimento_informacao_canetas_transferidas);
         pthread_mutex_unlock(&mutex_informacao_canetas_transferidas);
         
-        if(canetas_compradas_local >= 0)
-            total += canetas_compradas_local;
+        total += canetas_compradas_local;
         
         printf("Comprou %d canetas\n", canetas_compradas_local);
         printf("Total comprado: %d\n", total);
     }
-    
-    printf("\nComprador encerrou!!! Esperando proximas threads...\n\n");
-
 
     // join em todas as threads
     pthread_join(thread_deposito_materia, 0);
-    printf("Thread deposito materia finalizada\n");
+    printf("Thread deposito materia finalizada");
     pthread_join(thread_fabrica, 0);
-    printf("Thread fabrica finalizada\n");
+    printf("Thread fabrica finalizada");
     pthread_join(thread_controle, 0);
-    printf("Thread controle finalizada\n");
+    printf("Thread controle finalizada");
     pthread_join(thread_deposito_caneta, 0);
-    printf("Thread deposito caneta finalizada\n");
+    printf("Thread deposito caneta finalizada");
     pthread_join(thread_comprador, 0);
-    printf("Thread comprador finalizada\n");
+    printf("Thread comprador finalizada");
 
     // destroi mutexes
     pthread_mutex_destroy(&mutex_materia_enviada);
@@ -185,6 +180,7 @@ int criador() {
 
     return 0;
 }
+
 
 void *deposito_materia() {
     // recebe quantidade de canetas para transferir pelo controle e manda para a fabrica (2 variaveis)
@@ -279,18 +275,12 @@ void *fabrica() {
         }
 
         if(materia_prima_local == 0 && deposito_materia_finalizou == 1){
-            // envia sinal informando que encerrou
-            pthread_mutex_lock(&mutex_caneta_transferida_deposito);
-            while(caneta_transferida_deposito == 1) // aguarda deposito receber caneta anterior
-                pthread_cond_wait(&cond_caneta_transferida_deposito, &mutex_caneta_transferida_deposito);
-            caneta_transferida_deposito = -1;
-            pthread_mutex_unlock(&mutex_caneta_transferida_deposito);
-            
-            printf("encerrando fabrica\n");
+            printf("finalizando fabrica!\n");
             pthread_exit(NULL);
         }
     }
 }
+
 
 void *controle() {
     // recebe quantidade de espacos vazios do deposito de canetas e solicita producao para a fabrica e deposito de materia (2 variaveis) : 
@@ -317,9 +307,7 @@ void *deposito_caneta() {
 
     int canetas_armazenadas = 0;
     int canetas_solicitadas_local = 0;
-    int canetas_enviadas_local = 0;
-    int canetas_recebidas_local = 0;
-    int fabrica_encerrou = 0;
+    int canetas_transferidas_local = 0;
 
     while(1) {
         // passa espacos vazios ao controle
@@ -329,16 +317,10 @@ void *deposito_caneta() {
 
         // recebe caneta da fabrica
         pthread_mutex_lock(&mutex_caneta_transferida_deposito);
-        canetas_recebidas_local = caneta_transferida_deposito;
+        canetas_armazenadas += caneta_transferida_deposito;
         caneta_transferida_deposito = 0;
         pthread_cond_signal(&cond_caneta_transferida_deposito); // sinaliza recebimento da caneta
         pthread_mutex_unlock(&mutex_caneta_transferida_deposito);
-
-        // tratar sinal recebido da fábrica
-        if(canetas_recebidas_local >= 0)
-            canetas_armazenadas += canetas_recebidas_local;
-        else
-            fabrica_encerrou = 1;
 
         // parte do comprador
         // recebe novos pedidos do comprador apenas se o ultimo foi atendido
@@ -358,29 +340,14 @@ void *deposito_caneta() {
 
             // envia quantidade solicitada de canetas
             pthread_mutex_lock(&mutex_canetas_transferidas_comprador);
-            while(canetas_transferidas_comprador >= -1) // espera receber ultimo envio
-                pthread_cond_wait(&cond_recebimento_canetas_comprador, &mutex_canetas_transferidas_comprador);
             canetas_transferidas_comprador = canetas_solicitadas_local;
-            canetas_enviadas_local = canetas_transferidas_comprador;
+            canetas_transferidas_local = canetas_transferidas_comprador;
             pthread_cond_signal(&cond_canetas_transferidas_comprador);
             pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
             
             // atualizacao de variaveis fora da regiao critica
-            canetas_armazenadas -= canetas_enviadas_local;
+            canetas_armazenadas -= canetas_transferidas_local;
             canetas_solicitadas_local = 0;
-        }
-
-        if(canetas_armazenadas == 0 && fabrica_encerrou == 1){
-            // envia sinal informando que nao havera mais canetas
-            pthread_mutex_lock(&mutex_canetas_transferidas_comprador);
-            while(canetas_transferidas_comprador >= -1)
-                pthread_cond_wait(&cond_recebimento_canetas_comprador, &mutex_canetas_transferidas_comprador);
-            canetas_transferidas_comprador = -1;
-            pthread_cond_signal(&cond_canetas_transferidas_comprador);
-            pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
-
-            printf("encerrando deposito_caneta\n");
-            pthread_exit(NULL);
         }
     }
 
@@ -404,17 +371,15 @@ void *comprador() {
 
         // as recebe
         pthread_mutex_lock(&mutex_canetas_transferidas_comprador);
-        while(canetas_transferidas_comprador < -1)
+        while(canetas_transferidas_comprador < 0)
             pthread_cond_wait(&cond_canetas_transferidas_comprador, &mutex_canetas_transferidas_comprador);
         canetas_compradas_local = canetas_transferidas_comprador;
-        printf("RECERECEREC {%d}\n", canetas_transferidas_comprador);
-        canetas_transferidas_comprador = -2; // -2 sinaliza que nao ha nada transferido
-        pthread_cond_signal(&cond_recebimento_canetas_comprador);
+        canetas_transferidas_comprador = -1;
         pthread_mutex_unlock(&mutex_canetas_transferidas_comprador);
         
         //'envia' informação de compra para o criador
         pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
-        while(canetas_compradas > -2)
+        while(canetas_compradas > -1)
             pthread_cond_wait(&cond_recebimento_informacao_canetas_transferidas, &mutex_informacao_canetas_transferidas);
         canetas_compradas = canetas_compradas_local;
         pthread_cond_signal(&cond_informacao_canetas_transferidas);
