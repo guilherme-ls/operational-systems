@@ -158,8 +158,6 @@ int criador() {
 
 void *deposito_materia() {
     // recebe quantidade de canetas para transferir pelo controle e manda para a fabrica (2 variaveis)
-    printf("Thread deposito materia inicializada\n");
-
     int materia_prima_local = materia_existente;
     int demanda_caneta_local = 0;
     int materia_enviada_local;
@@ -191,7 +189,6 @@ void *deposito_materia() {
 
 void *fabrica() {
     // recebe quantidade de canetas para produzir de controle, materia do deposito e manda para o outro deposito (3 variaveis)
-    printf("Thread fabrica inicializada\n");
     int materia_prima_local = 0;
     int demanda_caneta_local = 0;
 
@@ -227,7 +224,6 @@ void *fabrica() {
 
 void *controle() {
     // recebe quantidade de espacos vazios do deposito de canetas e solicita producao para a fabrica e deposito de materia (2 variaveis) : 
-    printf("Thread controle inicializada\n");
     int espaco_deposito_local = 0;
 
     while(1) {
@@ -246,8 +242,6 @@ void *controle() {
 void *deposito_caneta() {
     // recebe pedidos de compra do comprador e transfere para ele as canetas compradas (2 variaveis) : canetas_solicitadas, canetas_transferidas_comprador
     // recebe caneta da fabrica e informa espacos vazios ao controle (2 variaveis) : caneta_transferida_deposito, espaco_deposito
-    printf("Thread deposito caneta inicializada\n");
-
     int canetas_armazenadas = 0;
     int canetas_solicitadas_local = 0;
     int canetas_transferidas_local = 0;
@@ -300,7 +294,6 @@ void *deposito_caneta() {
 void *comprador() {
     // solicita compra de canetas e recebe canetas compradas do deposito (2 variaveis) : canetas_solicitadas, canetas_transferidas_comprador
     // informa ao criador da compra (1 variavel) : canetas_compradas
-    printf("Thread comprador inicializada\n");
     int canetas_compradas_local;
 
     while(1) {
