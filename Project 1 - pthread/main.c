@@ -190,7 +190,7 @@ void *deposito_materia() {
     int demanda_caneta_local = 0;
     int materia_enviada_local;
 
-    while(1){
+    while(materia_prima_local > 0) {
         // obtem a demanda de canetas de controle
         pthread_mutex_lock(&mutex_caneta_fabricar);
         demanda_caneta_local = demanda_caneta;
@@ -199,28 +199,16 @@ void *deposito_materia() {
         // seleciona quantidade de materia prima a enviar
         if(materia_prima_local >= demanda_caneta_local)
             materia_enviada_local = demanda_caneta_local;
-        else if(materia_prima_local > 0)
-            materia_enviada_local = materia_prima_local;
         else
-            materia_enviada_local = -1;
+            materia_enviada_local = materia_prima_local;
+        materia_prima_local -= materia_enviada_local;
 
-        // caso algo foi enviado, subtrair do deposito local
-        if(materia_enviada_local > 0)
-            materia_prima_local -= materia_enviada_local;
-
-        // printf("enviando %dmps \n", materia_enviada_local);
-    
         // envia materia prima para a fabrica
         pthread_mutex_lock(&mutex_materia_enviada);
         while(materia_enviada > 0)
             pthread_cond_wait(&cond_materia_recebida, &mutex_materia_enviada);
         materia_enviada = materia_enviada_local;
         pthread_mutex_unlock(&mutex_materia_enviada);
-
-        if(materia_enviada_local == -1){
-            printf("encerrando deposito_materia!\n");
-            pthread_exit(NULL);
-        }
 
         // aguarda o intervalo entre envios
         sleep(intervalo_envio_materia);
@@ -230,8 +218,6 @@ void *deposito_materia() {
 void *fabrica() {
     // recebe quantidade de canetas para produzir de controle, materia do deposito e manda para o outro deposito (3 variaveis)
     printf("Thread fabrica inicializada\n");
-    int materia_prima_recebida_local = 0;
-    int deposito_materia_finalizou = 0;
     int materia_prima_local = 0;
     int demanda_caneta_local = 0;
 
@@ -243,24 +229,13 @@ void *fabrica() {
 
         // recebe materia prima do deposito de materia prima
         pthread_mutex_lock(&mutex_materia_enviada);
-        materia_prima_recebida_local = materia_enviada;
+        materia_prima_local += materia_enviada;
         materia_enviada = 0;
         pthread_cond_signal(&cond_materia_recebida);
         pthread_mutex_unlock(&mutex_materia_enviada);
-        
-
-        // transferir para deposito local se recebeu
-        if(materia_prima_recebida_local >= 0){
-            materia_prima_local += materia_prima_recebida_local;
-            materia_prima_recebida_local = 0;
-        }
-        // sinalizar que pode parar quando acabar estoque local de MP
-        else
-            deposito_materia_finalizou = 1;
 
         // fabrica caneta
         if(demanda_caneta_local > 0 && materia_prima_local > 0) {
-            // printf("FABRICANDO!!\n");
             materia_prima_local--;
 
             // aguarda o tempo de fabricacao
@@ -273,14 +248,8 @@ void *fabrica() {
             caneta_transferida_deposito = 1;
             pthread_mutex_unlock(&mutex_caneta_transferida_deposito);
         }
-
-        if(materia_prima_local == 0 && deposito_materia_finalizou == 1){
-            printf("finalizando fabrica!\n");
-            pthread_exit(NULL);
-        }
     }
 }
-
 
 void *controle() {
     // recebe quantidade de espacos vazios do deposito de canetas e solicita producao para a fabrica e deposito de materia (2 variaveis) : 
