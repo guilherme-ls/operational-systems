@@ -134,7 +134,7 @@ int criador() {
     // Loop para output da canetas compradas
     int canetas_compradas_local = 0;
     int total = 0;
-    while(canetas_compradas_local >= 0){
+    while(total < materia_existente){
         // receber informacao sobre canetas compradas
         pthread_mutex_lock(&mutex_informacao_canetas_transferidas);
         while(canetas_compradas == -1)
@@ -150,33 +150,7 @@ int criador() {
         printf("Total comprado: %d\n", total);
     }
 
-    // join em todas as threads
-    pthread_join(thread_deposito_materia, 0);
-    printf("Thread deposito materia finalizada");
-    pthread_join(thread_fabrica, 0);
-    printf("Thread fabrica finalizada");
-    pthread_join(thread_controle, 0);
-    printf("Thread controle finalizada");
-    pthread_join(thread_deposito_caneta, 0);
-    printf("Thread deposito caneta finalizada");
-    pthread_join(thread_comprador, 0);
-    printf("Thread comprador finalizada");
-
-    // destroi mutexes
-    pthread_mutex_destroy(&mutex_materia_enviada);
-    pthread_mutex_destroy(&mutex_caneta_fabricar);
-    pthread_mutex_destroy(&mutex_espaco_deposito);
-    pthread_mutex_destroy(&mutex_caneta_transferida_deposito);
-    pthread_mutex_destroy(&mutex_canetas_solicitadas);
-    pthread_mutex_destroy(&mutex_canetas_transferidas_comprador);
-    pthread_mutex_destroy(&mutex_informacao_canetas_transferidas);
-    
-    // destroi variaveis condicionais
-    pthread_cond_destroy(&cond_caneta_transferida_deposito);
-    pthread_cond_destroy(&cond_canetas_solicitadas);
-    pthread_cond_destroy(&cond_canetas_transferidas_comprador);
-    pthread_cond_destroy(&cond_informacao_canetas_transferidas);
-    pthread_cond_destroy(&cond_recebimento_informacao_canetas_transferidas);
+    exit(0);
 
     return 0;
 }
@@ -190,7 +164,7 @@ void *deposito_materia() {
     int demanda_caneta_local = 0;
     int materia_enviada_local;
 
-    while(materia_prima_local > 0) {
+    while(1) {
         // obtem a demanda de canetas de controle
         pthread_mutex_lock(&mutex_caneta_fabricar);
         demanda_caneta_local = demanda_caneta;
