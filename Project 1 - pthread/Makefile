@@ -5,4 +5,4 @@ run:
 	./main
 
 testing:
-	./main < test.in
+	./main 50 3 1 1 15 7 6

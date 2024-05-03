@@ -65,12 +65,21 @@ pthread_mutex_t mutex_canetas_solicitadas;
 pthread_mutex_t mutex_informacao_canetas_transferidas;
 
 // Thread criador (rank 0)
-int main() {
+int main(int argc, char **argv){
 
-    // Leitura dos argumentos de entrada
-    scanf("%d %d %d %d %d %d %d", &materia_existente, &materia_por_envio,
-    &intervalo_envio_materia, &tempo_fabricacao, &maximo_canetas_armazendas,
-    &canetas_por_compra, &tempo_compra);
+    if(argc != 7 + 1){
+        printf("esperava 7 argumentos!!!");
+        exit(1);
+    }
+
+    sscanf(argv[1], "%d", &materia_existente);
+    sscanf(argv[2], "%d", &materia_por_envio);
+    sscanf(argv[3], "%d", &intervalo_envio_materia);
+    sscanf(argv[4], "%d", &tempo_fabricacao);
+    sscanf(argv[5], "%d", &maximo_canetas_armazendas);
+    sscanf(argv[6], "%d", &canetas_por_compra);
+    sscanf(argv[7], "%d", &tempo_compra);
+
 
     return criador();
 }
